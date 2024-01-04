@@ -1,0 +1,4 @@
+[binaries]
+c='clang-17'
+cpp='clang++-17'
+cpp_ld='mold'

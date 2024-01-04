@@ -1,0 +1,19 @@
+# Meson subprojects
+/subprojects/*
+!/subprojects/*.wrap
+
+# Build directories
+build/
+
+# Tool state
+.cache/
+
+# Large media files
+*.mp4
+*.tiff
+*.avi
+*.flv
+*.mov
+*.wmv
+*.ts
+*.h265

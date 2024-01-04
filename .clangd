@@ -1,0 +1,6 @@
+---
+If:
+  PathMatch: *.cu
+CompileFlags:
+  Add: ['--cuda-gpu-arch=sm_86']
+  Remove: ['-Xcompiler=-Wall,-Winvalid-pch', '-G']
