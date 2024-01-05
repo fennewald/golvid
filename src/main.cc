@@ -29,8 +29,8 @@ int main(void) {
 
 	std::string_view pixfmt = "RGBA";
 	std::string_view output_file = "out.mp4";
-	constexpr int    width = 64;
-	constexpr int    height = 64;
+	constexpr int    width = 1080;
+	constexpr int    height = 1920;
 	constexpr auto   duration = 30s;
 	constexpr auto   fps = Ratio{30, 1};
 	constexpr auto   n_frames = duration / fps.frame_duration();
@@ -106,6 +106,12 @@ int main(void) {
 			exit(EXIT_FAILURE);
 		}
 
+		uint8_t * tmp = w_prev;
+		w_prev = w_next;
+		w_next = tmp;
+
+		step(w_prev, w_next, {width, height}, w_pitch, pixels, pix_pitch);
+
 		CU_CALL(cudaMemcpy2D(
 		    map_info.data,
 		    width * sizeof(pixel_t),
@@ -115,6 +121,7 @@ int main(void) {
 		    height,
 		    cudaMemcpyDeviceToHost));
 
+		/*
 		pixel_t * tmp = (pixel_t *)map_info.data;
 		int       y = height - 2;
 		for (int x = 0; x < width; x += 2) { tmp[(y * width) + x] = k_red; }
@@ -124,6 +131,7 @@ int main(void) {
 			tmp[(y * width) + x] = k_white;
 		}
 		tmp[((height - 1) * width) + width - 1] = k_red;
+		*/
 
 		gst_buffer_unmap(buff, &map_info);
 

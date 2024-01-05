@@ -10,10 +10,12 @@
 static constexpr long k_block_width = 4;
 static constexpr long k_block_height = 4;
 
+static constexpr pixel_t k_on_pixel = k_white;
+static constexpr pixel_t k_off_pixel = k_black;
 
 inline __device__ unsigned int index(int x, int y, res_t res, int pitch) {
-	//x %= res.width;
-	//y %= res.height;
+	x %= res.width;
+	y %= res.height;
 	return x + (y * pitch);
 }
 
@@ -51,11 +53,23 @@ get_cell(const uint8_t * prev, int x, int y, res_t res, int pitch) {
 	return rule(alive, neighbors);
 }
 
+inline __device__ uint8_t scale_channel(uint8_t raw) {
+	/*
+	double  factor = 0.9;
+	uint8_t a = 0xff - raw;
+	uint8_t b = a * 0.9;
+	return 0xff - b;
+	*/
+	return (uint8_t)((double)raw * 0.9);
+}
+
 inline __device__ void update_pixel(pixel_t * pixel, uint8_t val) {
 	if (val) {
-		*pixel = k_white;
+		*pixel = k_on_pixel;
 	} else {
-		*pixel = k_black;
+		pixel->r = scale_channel(pixel->r);
+		pixel->g = scale_channel(pixel->g);
+		pixel->b = scale_channel(pixel->b);
 	}
 }
 
@@ -88,29 +102,20 @@ __global__ void kernel_initalize(
     uint8_t * w0, uint8_t * w1, res_t res, int pitch, pixel_t * pixels, int pix_pitch) {
 	int x = job_x();
 	int y = job_y();
-	//if (x >= (int)res.width) return;
-	//if (y >= (int)res.height) return;
+	if (x >= (int)res.width) return;
+	if (y >= (int)res.height) return;
 
 	int w_idx = index(x, y, res, pitch);
 	int p_idx = index(x, y, res, pix_pitch);
 
-	/*
 	curandState rng;
 	curand_init(10881, w_idx, 0, &rng);
 	int  r = curand(&rng);
 	bool val = r & 1;
-	*/
-	bool val = w_idx % 2;
 
 	w0[w_idx] = val ? 1 : 0;
 	w1[w_idx] = val ? 1 : 0;
-	pixels[p_idx] = val ? k_white : k_black;
-	/*
-	pixels[p_idx].r = x * 0xff / res.width;
-	pixels[p_idx].g = y * 0xff / res.height;
-	pixels[p_idx].b = 0;
-	pixels[p_idx].a = 0xff;
-	*/
+	pixels[p_idx] = val ? k_on_pixel : k_off_pixel;
 }
 
 void initalize(
@@ -137,5 +142,6 @@ void step(
 	dim3 grid_dim(
 	    (res.width + k_block_width - 1) / k_block_width,
 	    (res.height + k_block_height - 1) / k_block_height);
-	step_gol<<<grid_dim, block_dim>>>(prev, next, res, pitch, pixels, pix_pitch);
+	step_gol<<<grid_dim, block_dim>>>(
+	    prev, next, res, pitch, pixels, pix_pitch / sizeof(pixel_t));
 }

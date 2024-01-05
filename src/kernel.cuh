@@ -14,7 +14,6 @@ void step(
     res_t           res,
     int             pitch,
     pixel_t *       pixels,
-    res_t           pix_res,
     int             pix_pitch);
 
 void initalize(
