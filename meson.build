@@ -10,8 +10,11 @@ fmt_dep = subproject('fmt').get_variable('fmt_dep')
 
 gst_dep = dependency('gstreamer-1.0', version: '>=1.20')
 
+cuda_dep = dependency('cuda', version: '>=12')
+
 srcs = [
   'src/main.cc',
+  'src/kernel.cu',
   # Gstreamer
   'src/gst/init.cc',
   'src/gst/element.cc',
@@ -23,5 +26,5 @@ srcs = [
 exe = executable(
   'do',
   srcs,
-  dependencies: [gst_dep, fmt_dep]
+  dependencies: [cuda_dep, gst_dep, fmt_dep]
 )

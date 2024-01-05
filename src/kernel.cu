@@ -1,19 +1,141 @@
+#include "src/kernel.cuh"
+
 #include <cstdint>
 
-struct dimensions {
-	unsigned int width, height;
-};
+#include <curand_kernel.h>
+#include <fmt/format.h>
 
-struct pixel {
-	unsigned int r, g, b;
-};
+#include "src/pixel.hh"
+
+static constexpr long k_block_width = 4;
+static constexpr long k_block_height = 4;
 
 
-__device__ bool get(const uint8_t * base, uint32_t x, uint32_t y) {
-	// TODO: impl
-	return true;
+inline __device__ unsigned int index(int x, int y, res_t res, int pitch) {
+	//x %= res.width;
+	//y %= res.height;
+	return x + (y * pitch);
 }
 
-__global__ void kernel(const uint8_t * previous, uint8_t * next, pixel * pixels) {
-	next[0] = 12;
+inline __device__ uint8_t rule(bool alive, uint8_t neighbors) {
+	switch (neighbors) {
+	case 0: [[fallthrough]];
+	case 1: return 0;
+	case 2: return alive ? 1 : 0;
+	case 3: return 1;
+	case 4: [[fallthrough]];
+	case 5: return 0;
+	case 6: [[fallthrough]];
+	case 7: return 1;
+	case 8: return 0;
+	default: __builtin_unreachable();
+	}
+}
+
+__device__ uint8_t
+get_cell(const uint8_t * prev, int x, int y, res_t res, int pitch) {
+	int  idx = index(x, y, res, pitch);
+	bool alive = prev[idx];
+
+	// clang-format off
+	uint8_t neighbors = prev[index(x - 1, y - 1, res, pitch)] +
+	                    prev[index(  x  , y - 1, res, pitch)] +
+	                    prev[index(x + 1, y - 1, res, pitch)] +
+	                    prev[index(x - 1,   y  , res, pitch)] +
+	                    prev[index(x + 1,   y  , res, pitch)] +
+	                    prev[index(x - 1, y + 1, res, pitch)] +
+	                    prev[index(  x  , y + 1, res, pitch)] +
+	                    prev[index(x + 1, y + 1, res, pitch)];
+	// clang-format on
+
+	return rule(alive, neighbors);
+}
+
+inline __device__ void update_pixel(pixel_t * pixel, uint8_t val) {
+	if (val) {
+		*pixel = k_white;
+	} else {
+		*pixel = k_black;
+	}
+}
+
+inline __device__ int job_x(void) {
+	return (blockIdx.x * blockDim.x) + threadIdx.x;
+}
+
+inline __device__ int job_y(void) {
+	return (blockIdx.y * blockDim.y) + threadIdx.y;
+}
+
+__global__ void step_gol(
+    const uint8_t * prev,
+    uint8_t *       next,
+    res_t           res,
+    int             pitch,
+    pixel_t *       pixels,
+    int             pix_pitch) {
+	int x = job_x();
+	int y = job_y();
+	if (x >= (int)res.width) return;
+	if (y >= (int)res.height) return;
+
+	uint8_t val = get_cell(prev, x, y, res, pitch);
+	update_pixel(&pixels[index(x, y, res, pix_pitch)], val);
+	next[index(x, y, res, pitch)] = val;
+}
+
+__global__ void kernel_initalize(
+    uint8_t * w0, uint8_t * w1, res_t res, int pitch, pixel_t * pixels, int pix_pitch) {
+	int x = job_x();
+	int y = job_y();
+	//if (x >= (int)res.width) return;
+	//if (y >= (int)res.height) return;
+
+	int w_idx = index(x, y, res, pitch);
+	int p_idx = index(x, y, res, pix_pitch);
+
+	/*
+	curandState rng;
+	curand_init(10881, w_idx, 0, &rng);
+	int  r = curand(&rng);
+	bool val = r & 1;
+	*/
+	bool val = w_idx % 2;
+
+	w0[w_idx] = val ? 1 : 0;
+	w1[w_idx] = val ? 1 : 0;
+	pixels[p_idx] = val ? k_white : k_black;
+	/*
+	pixels[p_idx].r = x * 0xff / res.width;
+	pixels[p_idx].g = y * 0xff / res.height;
+	pixels[p_idx].b = 0;
+	pixels[p_idx].a = 0xff;
+	*/
+}
+
+void initalize(
+    uint8_t * w0, uint8_t * w1, res_t res, int pitch, pixel_t * pixels, int pix_pitch) {
+	dim3 block_dim = dim3(k_block_width, k_block_height);
+	dim3 grid_dim(
+	    (res.width + k_block_width - 1) / k_block_width,
+	    (res.height + k_block_height - 1) / k_block_height);
+
+	fmt::println("block_dim: {}x{}", block_dim.x, block_dim.y);
+	fmt::println("grid_dim: {}x{}", grid_dim.x, grid_dim.y);
+	kernel_initalize<<<grid_dim, block_dim>>>(
+	    w0, w1, res, pitch, pixels, pix_pitch / sizeof(pixel_t));
+}
+
+void step(
+    const uint8_t * prev,
+    uint8_t *       next,
+    res_t           res,
+    int             pitch,
+    pixel_t *       pixels,
+    int             pix_pitch) {
+	dim3 block_dim(k_block_width, k_block_height);
+	dim3 grid_dim(
+	    (res.width + k_block_width - 1) / k_block_width,
+	    (res.height + k_block_height - 1) / k_block_height);
+	step_gol<<<grid_dim, block_dim>>>(prev, next, res, pitch, pixels, pix_pitch);
 }
