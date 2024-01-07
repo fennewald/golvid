@@ -9,12 +9,12 @@ struct res_t {
 };
 
 void step(
-    const uint8_t * prev,
-    uint8_t *       next,
-    res_t           res,
-    int             pitch,
-    pixel_t *       pixels,
-    int             pix_pitch);
+    uint8_t ** prev,
+    uint8_t ** next,
+    res_t      res,
+    int        pitch,
+    pixel_t *  pixels,
+    int        pix_pitch);
 
 void initalize(
     uint8_t * w0, uint8_t * w1, res_t res, int pitch, pixel_t * pixels, int pix_pitch);

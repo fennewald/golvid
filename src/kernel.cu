@@ -118,7 +118,7 @@ __global__ void kernel_initalize(
 	pixels[p_idx] = val ? k_on_pixel : k_off_pixel;
 }
 
-void initalize(
+__host__ void initalize(
     uint8_t * w0, uint8_t * w1, res_t res, int pitch, pixel_t * pixels, int pix_pitch) {
 	dim3 block_dim = dim3(k_block_width, k_block_height);
 	dim3 grid_dim(
@@ -131,17 +131,21 @@ void initalize(
 	    w0, w1, res, pitch, pixels, pix_pitch / sizeof(pixel_t));
 }
 
-void step(
-    const uint8_t * prev,
-    uint8_t *       next,
-    res_t           res,
-    int             pitch,
-    pixel_t *       pixels,
-    int             pix_pitch) {
+__host__ void step(
+    uint8_t ** prev,
+    uint8_t ** next,
+    res_t      res,
+    int        pitch,
+    pixel_t *  pixels,
+    int        pix_pitch) {
 	dim3 block_dim(k_block_width, k_block_height);
 	dim3 grid_dim(
 	    (res.width + k_block_width - 1) / k_block_width,
 	    (res.height + k_block_height - 1) / k_block_height);
 	step_gol<<<grid_dim, block_dim>>>(
-	    prev, next, res, pitch, pixels, pix_pitch / sizeof(pixel_t));
+	    *prev, *next, res, pitch, pixels, pix_pitch / sizeof(pixel_t));
+
+	uint8_t * tmp = *prev;
+	*prev = *next;
+	*next = tmp;
 }
