@@ -1,6 +1,7 @@
 #include "src/exception.hh"
 #include "src/log.hh"
 #include "src/sim.cuh"
+#include "src/params.hh"
 #include "src/sink.hh"
 
 #include <cstdlib>

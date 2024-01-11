@@ -1,10 +1,28 @@
 #include "src/sim.cuh"
 
+#include "src/params.hh"
 #include "src/vec.cuh"
 
 #include <curand_kernel.h>
 
 #include <cstdint>
+
+
+namespace call {
+
+template<typename F, typename... T>
+__host__ void agents(F f, T &&... ts) {
+	f<<<params::agent_grid_dim, params::agent_block_dim>>>(ts...);
+}
+
+template<typename F, typename... T>
+__host__ void cells(F f, T &&... ts) {
+	f<<<params::cells_grid_dim, params::cells_block_dim>>>(ts...);
+}
+
+}  // namespace call
+
+/*******************************************************************************/
 
 inline __device__ uint32_t idx_1(void) {
 	return (blockIdx.x * blockDim.x) + threadIdx.x;
@@ -28,11 +46,9 @@ namespace initialize {
 
 __global__ void k_cells(Cell * cells, int pitch) {
 	auto coords = idx_2();
-	if (coords.x >= static_cast<int>(params::width)) return;
-	if (coords.y >= static_cast<int>(params::height)) return;
-
-	Cell * output = pitch_ptr(cells, coords, pitch);
-	output->x = 0;
+	if (coords.x >= params::width) return;
+	if (coords.y >= params::height) return;
+	pitch_ptr(cells, coords, pitch)->clear();
 }
 
 
@@ -62,15 +78,15 @@ __host__ void agents(float * x, float * y, float * dir) {
 inline __device__ void render_cell(const Cell * cell, Pixel * pixel) {
 	auto v = cell->x;
 	if (v > 0xff) {
-		pixel->r = 0xff;
-		pixel->g = 0xff;
-		pixel->b = 0xff;
+		pixel->set_r(0xff);
+		pixel->set_g(0xff);
+		pixel->set_b(0xff);
 	} else {
-		pixel->r = cell->x % 0xff;
-		pixel->g = 0;
-		pixel->b = 0;
+		pixel->set_r(cell->x % 0xff);
+		pixel->set_g(0);
+		pixel->set_b(0);
 	}
-	pixel->a = 0xff;
+	pixel->set_a(0xff);
 }
 
 __global__ void
@@ -142,7 +158,7 @@ agent_step(float * xs, float * ys, float * dirs, const Cell * cells, int pitch) 
 	*/
 
 	// move
-	coords += carts(d) * params::agent_move_distance;
+	// coords += carts(d) * params::agent_move_distance;
 	coords.x = fmodf(coords.x, params::width);
 	coords.y = fmodf(coords.y, params::height);
 
@@ -155,10 +171,9 @@ agent_step(float * xs, float * ys, float * dirs, const Cell * cells, int pitch) 
 __global__ void deposit(float * xs, float * ys, Cell * cells, int pitch) {
 	auto idx = idx_1();
 	if (idx >= params::n_agents) return;
-
 	int x = static_cast<int>(xs[idx]);
 	int y = static_cast<int>(ys[idx]);
-	atomicAdd(&(pitch_ptr(cells, {x, y}, pitch)->x), params::deposit);
+	// atomicAdd(&(pitch_ptr(cells, {x, y}, pitch)->x), params::deposit);
 }
 
 inline __device__ void decay(Cell * cell) { cell->x *= 0.9; }

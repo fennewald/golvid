@@ -18,7 +18,8 @@ srcs = [
   'src/main.cc',
   'src/sink.cc',
   'src/log/time.cc',
-  'src/sim.cu'
+  'src/sim.cu',
+  'src/medium.cu'
 ]
 
 exe = executable(

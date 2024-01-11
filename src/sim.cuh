@@ -1,11 +1,11 @@
 #pragma once
 
 #include "src/pixel.cuh"
+#include "src/cell.cuh"
 
 #include <cuda_runtime.h>
 
-#include <cstddef>
-
+/*
 namespace details {
 
 constexpr size_t ceil_div(size_t num, size_t denom) {
@@ -54,6 +54,7 @@ struct Cell {
 
 	__device__ Cell operator/(int n) const { return Cell{x / n}; }
 };
+*/
 
 namespace initialize {
 
