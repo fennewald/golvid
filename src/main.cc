@@ -26,7 +26,7 @@ int main(void) {
 	    .height = params::height,
 	    .fps = {1, 1},
 	});
-	auto duration = 30s;
+	auto duration = 60s;
 	auto n_frames = duration / sink.fps().frame_dur();
 
 	// Cuda types

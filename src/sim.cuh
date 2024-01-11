@@ -1,9 +1,10 @@
 #pragma once
 
+#include "src/pixel.cuh"
+
 #include <cuda_runtime.h>
 
 #include <cstddef>
-#include <cstdint>
 
 namespace details {
 
@@ -18,7 +19,7 @@ constexpr float deg_to_rad(float deg) {
 }  // namespace details
 
 namespace params {
-static constexpr int   deposit = 10;
+static constexpr int   deposit = 0xff;
 static constexpr float sensor_angle_deg = 45;
 static constexpr float sensor_angle_rad = details::deg_to_rad(sensor_angle_deg);
 static constexpr float agent_turn_deg = 45;
@@ -26,9 +27,9 @@ static constexpr float agent_turn_rad = details::deg_to_rad(agent_turn_deg);
 static constexpr float sensor_distance = 2;
 static constexpr float agent_move_distance = 2;
 
-static constexpr size_t n_agents = 200;
-static constexpr size_t width = 100;
-static constexpr size_t height = 100;
+static constexpr size_t n_agents = 2;
+static constexpr size_t width = 200;
+static constexpr size_t height = 200;
 
 static constexpr size_t agent_block_dim = 128;
 static constexpr size_t agent_grid_dim =
@@ -45,10 +46,6 @@ static constexpr dim3 cells_block_dim =
 static constexpr dim3 cells_grid_dim = dim3{cells_grid_width, cells_grid_height};
 
 }  // namespace params
-
-struct Pixel {
-	uint8_t r, g, b, a;
-};
 
 struct Cell {
 	int x = 0;

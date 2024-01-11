@@ -2,6 +2,8 @@
 
 #include "src/vec.cuh"
 
+#include <curand_kernel.h>
+
 #include <cstdint>
 
 inline __device__ uint32_t idx_1(void) {
@@ -36,11 +38,14 @@ __global__ void k_cells(Cell * cells, int pitch) {
 
 __global__ void k_agents(float * x, float * y, float * dir) {
 	auto idx = idx_1();
-	if (idx > params::n_agents) return;
+	if (idx >= params::n_agents) return;
 
-	x[idx] = static_cast<float>(params::width) / 2;
-	y[idx] = static_cast<float>(params::height) / 2;
-	dir[idx] = 0;
+	curandState rng;
+	curand_init(10881, idx, 0, &rng);
+
+	x[idx] = (float)(curand(&rng) % params::width);
+	y[idx] = (float)(curand(&rng) % params::height);
+	dir[idx] = 45 / (2 * M_PI);
 }
 
 __host__ void cells(Cell * cells, int pitch) {
@@ -55,9 +60,16 @@ __host__ void agents(float * x, float * y, float * dir) {
 
 
 inline __device__ void render_cell(const Cell * cell, Pixel * pixel) {
-	pixel->r = cell->x & 0xff;
-	pixel->g = cell->x & 0xff;
-	pixel->b = cell->x & 0xff;
+	auto v = cell->x;
+	if (v > 0xff) {
+		pixel->r = 0xff;
+		pixel->g = 0xff;
+		pixel->b = 0xff;
+	} else {
+		pixel->r = cell->x % 0xff;
+		pixel->g = 0;
+		pixel->b = 0;
+	}
 	pixel->a = 0xff;
 }
 
@@ -82,10 +94,8 @@ render(const Cell * cells, int cell_pitch, Pixel * pixels, int pix_pitch) {
 __device__ Cell get_avg_cell(const Cell * cells, IVec2 coords, int pitch) {
 	Cell res;
 
-#pragma unroll
 	for (int dy = -1; dy < 2; ++dy) {
 		int y = coords.y + dy;
-#pragma unroll
 		for (int dx = -1; dx < 2; ++dx) {
 			int x = coords.x + dx;
 			res += *pitch_ptr(cells, {x, y}, pitch);
@@ -111,7 +121,7 @@ inline __device__ Cell sample(Cell * cells, FVec2 coords, int pitch) {
 }
 
 __global__ void
-agent_step(float * xs, float * ys, float * dirs, Cell * cells, int pitch) {
+agent_step(float * xs, float * ys, float * dirs, const Cell * cells, int pitch) {
 	auto idx = idx_1();
 	if (idx >= params::n_agents) return;
 
@@ -119,22 +129,22 @@ agent_step(float * xs, float * ys, float * dirs, Cell * cells, int pitch) {
 	auto d = dirs[idx];
 
 	// sense
-	auto fl = sample(cells, moved(coords, d - params::sensor_angle_rad), pitch);
+	/*
+	auto fl = sample(cells, moved(coords, d + params::sensor_angle_rad), pitch);
 	auto c = sample(cells, moved(coords, d), pitch);
-	auto fr = sample(cells, moved(coords, d + params::sensor_angle_rad), pitch);
+	auto fr = sample(cells, moved(coords, d - params::sensor_angle_rad), pitch);
 
 	if (fl.x > c.x && fl.x > fr.x) {
-		d += params::agent_turn_rad;
+	    d = fmodf(d + params::agent_turn_rad, 2 * M_PI);
 	} else if (fr.x > fl.x && fr.x > c.x) {
-		d -= params::agent_turn_rad;
+	    d = fmodf(d - params::agent_turn_rad, 2 * M_PI);
 	}
+	*/
 
 	// move
 	coords += carts(d) * params::agent_move_distance;
-
-	// Deposit
-	IVec2 i_coords = {static_cast<int>(coords.x), static_cast<int>(coords.y)};
-	atomicAdd(&(pitch_ptr(cells, i_coords, pitch)->x), params::deposit);
+	coords.x = fmodf(coords.x, params::width);
+	coords.y = fmodf(coords.y, params::height);
 
 	// Write back coordinates
 	xs[idx] = coords.x;
@@ -142,7 +152,16 @@ agent_step(float * xs, float * ys, float * dirs, Cell * cells, int pitch) {
 	dirs[idx] = d;
 }
 
-inline __device__ void decay(Cell * cell) { cell->x *= 0.8; }
+__global__ void deposit(float * xs, float * ys, Cell * cells, int pitch) {
+	auto idx = idx_1();
+	if (idx >= params::n_agents) return;
+
+	int x = static_cast<int>(xs[idx]);
+	int y = static_cast<int>(ys[idx]);
+	atomicAdd(&(pitch_ptr(cells, {x, y}, pitch)->x), params::deposit);
+}
+
+inline __device__ void decay(Cell * cell) { cell->x *= 0.9; }
 
 __global__ void media_step(const Cell * prev, Cell * next, int pitch) {
 	auto coords = idx_2();
@@ -151,8 +170,9 @@ __global__ void media_step(const Cell * prev, Cell * next, int pitch) {
 
 	Cell * output = pitch_ptr(next, coords, pitch);
 	Cell   c = get_avg_cell(prev, coords, pitch);
+	// Cell c = *pitch_ptr(prev, coords, pitch);
 
-	// decay(&c);
+	decay(&c);
 	*output = c;
 }
 
@@ -167,6 +187,9 @@ __host__ void step(
     int     pix_pitch) {
 	agent_step<<<params::agent_grid_dim, params::agent_block_dim>>>(
 	    x, y, dir, *prev, cell_pitch);
+
+	deposit<<<params::agent_grid_dim, params::agent_block_dim>>>(
+	    x, y, *prev, cell_pitch);
 
 	media_step<<<params::cells_grid_dim, params::cells_block_dim>>>(
 	    *prev, *next, cell_pitch);
