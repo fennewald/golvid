@@ -1,5 +1,5 @@
 project('trnfr', 'cpp', 'cuda',
-  default_options: ['warning_level=3', 'c_std=c23', 'cpp_std=gnu++23'])
+  default_options: ['warning_level=2', 'c_std=c23', 'cpp_std=gnu++23'])
 
 if meson.get_compiler('cpp').get_linker_id() == 'ld.mold'
   # Enable colorful output if we're using mold
@@ -17,13 +17,8 @@ cuda_dep = dependency('cuda', version: '>=12')
 srcs = [
   'src/main.cc',
   'src/sink.cc',
-  'src/kernel.cu',
-  # Gstreamer
-  'src/gst/init.cc',
-  'src/gst/element.cc',
-  'src/gst/pipeline.cc',
-  'src/gst/bus.cc',
-  'src/gst/bin.cc',
+  'src/log/time.cc',
+  'src/sim.cu'
 ]
 
 exe = executable(

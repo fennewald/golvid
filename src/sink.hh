@@ -1,7 +1,7 @@
 #pragma once
 
-#include "src/pixel.hh"
 #include "src/ratio.hh"
+#include "src/sim.cuh"
 
 #include <gst/gstbus.h>
 #include <gst/gstelement.h>
@@ -25,7 +25,7 @@ public:
 	
 	Sink(Params params);
 
-	void submit_frame(const pixel_t * frame, int pitch);
+	void submit_frame(const Pixel * frame, int pitch);
 
 	void end(void);
 

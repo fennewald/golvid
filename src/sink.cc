@@ -2,7 +2,6 @@
 
 #include "src/exception.hh"
 #include "src/log.hh"
-#include "src/pixel.hh"
 
 #include <cuda_runtime.h>
 #include <fmt/format.h>
@@ -72,7 +71,7 @@ Sink::Sink(Params params) :
 	gst_element_set_state(m_pipeline, GST_STATE_PLAYING);
 }
 
-void Sink::submit_frame(const pixel_t * frame, int pitch) {
+void Sink::submit_frame(const Pixel * frame, int pitch) {
 	GstBuffer * buff = gst_buffer_new_allocate(nullptr, frame_size(), nullptr);
 	if (buff == nullptr) throw Exception("allocation failed");
 
@@ -88,10 +87,10 @@ void Sink::submit_frame(const pixel_t * frame, int pitch) {
 
 	cudaError_t err = cudaMemcpy2D(
 	    map.data,
-	    m_width * sizeof(pixel_t),
+	    m_width * sizeof(Pixel),
 	    frame,
 	    pitch,
-	    m_width * sizeof(pixel_t),
+	    m_width * sizeof(Pixel),
 	    m_height,
 	    cudaMemcpyDeviceToHost);
 	if (err != cudaSuccess) throw Exception("cuda memcpy failed");
@@ -119,7 +118,7 @@ void Sink::end(void) {
 }
 
 uint64_t Sink::frame_size(void) const {
-	return sizeof(pixel_t) * m_height * m_width;
+	return sizeof(Pixel) * m_height * m_width;
 }
 
 Sink::Duration Sink::frame_dur(void) const { return m_fps.frame_dur(); }

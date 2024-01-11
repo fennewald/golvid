@@ -1,21 +1,17 @@
 #pragma once
 
 #include "src/log/level.hh"
+#include "src/log/time.hh"
 
+#include <fmt/chrono.h>
 #include <fmt/format.h>
 
 namespace captains::log {
 
-template<typename... T>
-void handle(Level lvl, fmt::format_string<T...> format, T &&... args) {
-	fmt::print("[{:c}] ", lvl);
-	fmt::println(format, args...);
-}
-
 #define DEF_LEVEL(name, enm)                                   \
 	template<typename... T>                                    \
 	void name(fmt::format_string<T...> format, T &&... args) { \
-		fmt::print("[{:c}] ", enm);                            \
+		fmt::print("[{:%S}][{:c}] ", stamp(), enm);            \
 		fmt::vprint(format, fmt::make_format_args(args...));   \
 		fmt::println("");                                      \
 	}

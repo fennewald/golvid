@@ -1,7 +1,6 @@
-#include "src/kernel.cuh"
+#include "src/exception.hh"
 #include "src/log.hh"
-#include "src/pixel.hh"
-#include "src/ratio.hh"
+#include "src/sim.cuh"
 #include "src/sink.hh"
 
 #include <cstdlib>
@@ -19,17 +18,14 @@
 	} while (0)
 
 int main(void) {
+	log::info("start");
 	using namespace std::chrono_literals;
 
-	auto params = Sink::Params{
-	    .width = 1080,
-	    .height = 1920,
-	};
-
-	auto sink = Sink(params);
-	auto res = res_t{
-	    .width = (unsigned int)params.width,
-	    .height = (unsigned int)params.height};
+	auto sink = Sink(Sink::Params{
+	    .width = params::width,
+	    .height = params::height,
+	    .fps = {1, 1},
+	});
 	auto duration = 30s;
 	auto n_frames = duration / sink.fps().frame_dur();
 
@@ -39,44 +35,79 @@ int main(void) {
 	CU_CALL(cudaEventCreate(&start));
 	CU_CALL(cudaEventCreate(&stop));
 
-	pixel_t * pixels;
-	size_t    pix_pitch;
+	Pixel * pixels;
+	size_t  pix_pitch;
 	CU_CALL(cudaMallocPitch(
-	    &pixels, &pix_pitch, params.width * sizeof(pixel_t), params.height));
-	log::info("created frame with pitch {}", pix_pitch);
+	    &pixels, &pix_pitch, params::width * sizeof(Pixel), params::height));
+	log::info(
+	    "allocated {}x{} frame (pitch: {}, ptr: {})",
+	    params::width,
+	    params::height,
+	    pix_pitch,
+	    fmt::ptr(pixels));
 
-	// Setup world states
-	uint8_t *w_prev, *w_next;
-	size_t   w_pitch_0, w_pitch_1, w_pitch;
-	CU_CALL(cudaMallocPitch(&w_prev, &w_pitch_0, params.width, params.height));
-	CU_CALL(cudaMallocPitch(&w_next, &w_pitch_1, params.width, params.height));
-	if (w_pitch_0 != w_pitch_1) {
-		fmt::println("mismatch");
-		exit(EXIT_FAILURE);
-	}
-	w_pitch = w_pitch_0;
-	log::info("allocated worlds");
+	// Setup data layers
+	Cell * cells_prev, *cells_next;
+	size_t p0, p1;
+	CU_CALL(cudaMallocPitch(
+	    &cells_prev, &p0, params::width * sizeof(Cell), params::height));
+	CU_CALL(cudaMallocPitch(
+	    &cells_next, &p1, params::width * sizeof(Cell), params::height));
+	if (p0 != p1) throw Exception::format("pitch mismatch: {} != {}", p0, p1);
+	size_t cell_pitch = p0;
+	log::info(
+	    "allocated {}x{} data layer (pitch: {}, ptr: {}, {})",
+	    params::width,
+	    params::height,
+	    cell_pitch,
+	    fmt::ptr(cells_prev),
+	    fmt::ptr(cells_next));
 
-	CU_CALL(cudaEventRecord(start, 0));
-	initalize(w_prev, w_next, res, w_pitch, pixels, pix_pitch);
+	// Setup agent layers
+	float *agent_x, *agent_y, *agent_dir;
+	CU_CALL(cudaMalloc(&agent_x, params::n_agents * sizeof(float)));
+	log::info("allocated {} agent xs: {}", params::n_agents, fmt::ptr(agent_x));
+	CU_CALL(cudaMalloc(&agent_y, params::n_agents * sizeof(float)));
+	log::info("allocated {} agent ys: {}", params::n_agents, fmt::ptr(agent_y));
+	CU_CALL(cudaMalloc(&agent_dir, params::n_agents * sizeof(float)));
+	log::info(
+	    "allocated {} agent dirs: {}", params::n_agents, fmt::ptr(agent_dir));
+
+	// Initalize data layers
+	CU_CALL(cudaEventRecord(start));
+	initialize::cells(cells_prev, cell_pitch);
+	initialize::cells(cells_next, cell_pitch);
 	CU_CALL(cudaGetLastError());
-	CU_CALL(cudaEventRecord(stop, 0));
+	CU_CALL(cudaEventRecord(stop));
 	CU_CALL(cudaEventSynchronize(stop));
 	CU_CALL(cudaEventElapsedTime(&time, start, stop));
-
 	log::info(
-	    "initalizing done, took {}",
+	    "initalizing data layer done, took {}",
 	    std::chrono::duration<float, std::ratio<1, 1000>>(time));
 
-	// Warm simulation
-	for (long i = 0; i < 100; ++i) {
-		step(&w_prev, &w_next, res, w_pitch, pixels, pix_pitch);
-	}
+	// Initalize agent arrays
+	CU_CALL(cudaEventRecord(start));
+	initialize::agents(agent_x, agent_y, agent_dir);
+	CU_CALL(cudaGetLastError());
+	CU_CALL(cudaEventRecord(stop));
+	CU_CALL(cudaEventSynchronize(stop));
+	CU_CALL(cudaEventElapsedTime(&time, start, stop));
+	log::info(
+	    "initalizing agents done, took {}",
+	    std::chrono::duration<float, std::ratio<1, 1000>>(time));
+
 
 	for (long i = 0; i < n_frames; ++i) {
-		step(&w_prev, &w_next, res, w_pitch, pixels, pix_pitch);
+		step(
+		    &cells_prev,
+		    &cells_next,
+		    cell_pitch,
+		    agent_x,
+		    agent_y,
+		    agent_dir,
+		    pixels,
+		    pix_pitch);
 		sink.submit_frame(pixels, pix_pitch);
 	}
 	sink.end();
 }
-
