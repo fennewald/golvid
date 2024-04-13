@@ -8,14 +8,14 @@
 
 class Cell {
 public:
-	static __device__ __host__ constexpr Cell empty(()) { return Cell(-1); }
+	static __device__ __host__ constexpr Cell empty() { return Cell(-1); }
 
 	__device__ __host__ constexpr Cell() {}
 	__device__ __host__ constexpr Cell(int a) : m_a{a} {}
 
-	__device__ __host__ inline constexpr () clear(()) { m_a = 0; }
+	__device__ __host__ inline constexpr void clear() { m_a = 0; }
 
-	__device__ __host__ inline Pixel color(()) const {
+	__device__ __host__ inline Pixel color() const {
 		int c = m_a * 0xff / 10;
 		if (c > 0xff) c = 0xff;
 		auto p = Pixel{};
@@ -25,7 +25,7 @@ public:
 		return p;
 	}
 
-	__device__ __host__ inline constexpr () operator+=(Cell rhs) {
+	__device__ __host__ inline constexpr void operator+=(Cell rhs) {
 		m_a += rhs.m_a;
 	}
 
@@ -38,12 +38,12 @@ public:
 	}
 
 	// Atomically deposit into this cell
-	__device__ inline () deposit(()) {
+	__device__ inline void deposit() {
 		// atomicAdd(&m_a, params::deposit_amount);
 		m_a += params::deposit_amount;
 	}
 
-	__device__ inline () decay(()) { m_a *= params::decay_factor; }
+	__device__ inline void decay() { m_a *= params::decay_factor; }
 
 private:
 	int m_a = 0;

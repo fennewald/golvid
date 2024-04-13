@@ -14,13 +14,13 @@ public:
 		return Exception(fmt::vformat(format, fmt::make_format_args(ts...)));
 	}
 
-	static Exception todo(()) { return Exception("Unimplemented"); }
+	static Exception todo() { return Exception("Unimplemented"); }
 
 	Exception() = default;
 
 	Exception(std::string msg) : m_msg{msg} {}
 
-	virtual const char * what(()) const noexcept { return m_msg.c_str(); }
+	virtual const char * what() const noexcept { return m_msg.c_str(); }
 
 protected:
 	std::string m_msg;

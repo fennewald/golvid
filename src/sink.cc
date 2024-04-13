@@ -22,7 +22,7 @@ static constexpr auto k_src_name = "m_src";
 
 static std::atomic_flag k_gst_init = false;
 
-() check_gst_init(()) {
+void check_gst_init() {
 	if (!k_gst_init.test_and_set()) {
 		int     argc = 0;
 		char ** argv = {nullptr};
@@ -72,7 +72,7 @@ Sink::Sink(Params params) :
 	gst_element_set_state(m_pipeline, GST_STATE_PLAYING);
 }
 
-() Sink::submit_frame(const Pixel * frame, int pitch) {
+void Sink::submit_frame(const Pixel * frame, int pitch) {
 	GstBuffer * buff = gst_buffer_new_allocate(nullptr, frame_size(), nullptr);
 	if (buff == nullptr) throw Exception("allocation failed");
 
@@ -106,7 +106,7 @@ Sink::Sink(Params params) :
 	gst_buffer_unref(buff);
 }
 
-() Sink::end(()) {
+void Sink::end() {
 	llog::trace("ending stream");
 	gst_element_send_event(m_src, gst_event_new_eos());
 
@@ -120,13 +120,13 @@ Sink::Sink(Params params) :
 	}
 }
 
-uint64_t Sink::frame_size(()) const {
+uint64_t Sink::frame_size() const {
 	return sizeof(Pixel) * m_height * m_width;
 }
 
-Sink::Duration Sink::frame_dur(()) const { return m_fps.frame_dur(); }
+Sink::Duration Sink::frame_dur() const { return m_fps.frame_dur(); }
 
-Ratio Sink::fps(()) const { return m_fps; }
+Ratio Sink::fps() const { return m_fps; }
 
 Sink::~Sink() {
 	gst_element_set_state(m_pipeline, GST_STATE_NULL);

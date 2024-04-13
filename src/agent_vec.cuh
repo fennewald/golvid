@@ -13,7 +13,7 @@
 
 class AgentVec {
 public:
-	static __host__ AgentVec alloc(()) {
+	static __host__ AgentVec alloc() {
 		float *xs = nullptr, *ys = nullptr, *ds = nullptr;
 
 		cudaError_t res;
@@ -39,25 +39,25 @@ public:
 	__device__ __host__ constexpr AgentVec(float * xs, float * ys, float * ds) :
 	    m_xs{xs}, m_ys{ys}, m_ds{ds} {}
 
-	__device__ __host__ inline constexpr float * xs(()) { return m_xs; }
-	__device__ __host__ inline constexpr float * ys(()) { return m_ys; }
-	__device__ __host__ inline constexpr float * ds(()) { return m_ds; }
+	__device__ __host__ inline constexpr float * xs() { return m_xs; }
+	__device__ __host__ inline constexpr float * ys() { return m_ys; }
+	__device__ __host__ inline constexpr float * ds() { return m_ds; }
 
 	__device__ inline constexpr Agent at(size_t idx) {
 		return Agent{m_xs[idx], m_ys[idx], m_ds[idx]};
 	}
 
-	__device__ inline () store(Agent a, size_t idx) {
+	__device__ inline void store(Agent a, size_t idx) {
 		m_xs[idx] = a.x();
 		m_ys[idx] = a.y();
 		m_ds[idx] = a.dir();
 	}
 
-	__host__ () init(());
-	__host__ () step(Medium medium);
-	__host__ () deposit(Medium medium);
+	__host__ void init();
+	__host__ void step(Medium medium);
+	__host__ void deposit(Medium medium);
 	// Render directions of all agents
-	__host__ () render_dirs(Pixel * pixels, int pitch);
+	__host__ void render_dirs(Pixel * pixels, int pitch);
 
 private:
 	float * m_xs;

@@ -5,6 +5,7 @@
 #include "src/params.hh"
 #include "src/util.hh"
 
+#include <cmath>
 #include <cuda_runtime.h>
 
 class Agent {
@@ -17,16 +18,20 @@ public:
 	__device__ inline float dir(void) const { return m_dir; }
 
 	__device__ inline float2 coords(void) const { return float2{m_x, m_y}; }
-	__device__ inline int2   icoords(void) const
+	__device__ inline int2   icoords(void) const {
+        return int2{static_cast<int>(rintf(m_x)), static_cast<int>(rintf(m_y))};
+	}
 
 	__device__ inline Cell sense_l(Medium medium) const {
-		return sense_with_dt(medium, params::sensor_angle_rad, params::sensor_angle_distance);
+		return sense_with_dt(
+		    medium, params::sensor_angle_rad, params::sensor_angle_distance);
 	}
 	__device__ inline Cell sense_c(Medium medium) const {
 		return sense_with_dt(medium, 0);
 	}
 	__device__ inline Cell sense_r(Medium medium) const {
-		return sense_with_dt(medium, -1 * params::sensor_angle_rad, params::sensor_angle_distance);
+		return sense_with_dt(
+		    medium, -1 * params::sensor_angle_rad, params::sensor_angle_distance);
 	}
 
 	__device__ inline void turn_left(void) {
@@ -44,7 +49,8 @@ public:
 	}
 
 private:
-	__device__ inline Cell sense_with_dt(Medium medium, float d, float distance = params::sensor_distance) const {
+	__device__ inline Cell sense_with_dt(
+	    Medium medium, float d, float distance = params::sensor_distance) const {
 		float2 p;
 		sincosf(m_dir + d, &p.y, &p.x);
 		p.x = (p.x * distance) + x();

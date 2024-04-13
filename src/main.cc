@@ -21,7 +21,7 @@
 		}                                      \
 	} while (0)
 
-int main(()) {
+int main() {
 	llog::info("start");
 	using namespace std::chrono_literals;
 
