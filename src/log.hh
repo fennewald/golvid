@@ -6,7 +6,7 @@
 #include <fmt/chrono.h>
 #include <fmt/format.h>
 
-namespace captains::log {
+namespace captains::llog {
 
 #define DEF_LEVEL(name, enm)                                   \
 	template<typename... T>                                    \
@@ -26,5 +26,5 @@ DEF_LEVEL(fatal, Level::Fatal)
 #undef DEF_LEVEL
 
 
-}  // namespace captains::log
+}  // namespace captains::llog
 using namespace captains;

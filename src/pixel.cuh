@@ -29,7 +29,7 @@ public:
 		return Pixel{channels[0], channels[1], channels[2]};
 	}
 
-	__device__ __host__ constexpr Pixel(void) = default;
+	__device__ __host__ constexpr Pixel(void) {}
 	__device__ __host__ constexpr Pixel(uint8_t r, uint8_t g, uint8_t b) :
 	    m_raw{r, g, b, 0xff} {}
 	__device__ __host__ constexpr Pixel(uint8_t r, uint8_t g, uint8_t b, uint8_t a) :
@@ -57,7 +57,7 @@ private:
 
 namespace color {
 
-inline constexpr Pixel white = Pixel::from_hex("#ffffff");
+inline constexpr Pixel white = Pixel(0xff, 0xff, 0xff);
 inline constexpr Pixel black = Pixel::from_hex("#000000");
 inline constexpr Pixel red = Pixel::from_hex("#ff0000");
 inline constexpr Pixel green = Pixel::from_hex("#00ff00");

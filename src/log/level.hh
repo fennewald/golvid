@@ -2,7 +2,7 @@
 
 #include <fmt/format.h>
 
-namespace captains::log {
+namespace captains::llog {
 
 enum class Level {
 	Trace = 1,
@@ -23,10 +23,10 @@ constexpr Level level_from_int(int n) {
 	return Level::Fatal;
 }
 
-}  // namespace captains::log
+}  // namespace captains::llog
 
 template<>
-struct fmt::formatter<captains::log::Level> {
+struct fmt::formatter<captains::llog::Level> {
 	bool color = false;
 
 	constexpr auto parse(format_parse_context & ctx)
@@ -40,10 +40,10 @@ struct fmt::formatter<captains::log::Level> {
 		return it;
 	}
 
-	auto format(const captains::log::Level & level, format_context & ctx) const
+	auto format(const captains::llog::Level & level, format_context & ctx) const
 	    -> format_context::iterator {
 		std::string_view name = "NONE";
-		using namespace captains::log;
+		using namespace captains::llog;
 
 		if (color) {
 			// Raw ansi escape sequence

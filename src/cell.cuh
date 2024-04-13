@@ -1,5 +1,6 @@
 #pragma once
 
+#include "src/params.hh"
 #include "src/pixel.cuh"
 
 #include <cuda_runtime.h>
@@ -7,23 +8,24 @@
 
 class Cell {
 public:
-	static __device__ __host__ constexpr Cell empty(void) { return Cell(); }
+	static __device__ __host__ constexpr Cell empty(()) { return Cell(-1); }
 
-	__device__ __host__ constexpr Cell(void) = default;
+	__device__ __host__ constexpr Cell() {}
 	__device__ __host__ constexpr Cell(int a) : m_a{a} {}
 
-	__device__ __host__ inline constexpr void clear(void) { m_a = 0; }
+	__device__ __host__ inline constexpr () clear(()) { m_a = 0; }
 
-	__device__ __host__ inline Pixel color(void) const {
-		if (m_a > 0xff * 3) return color::white;
-		Pixel p;
-		p.set_r(m_a % 0xff);
-		p.set_g((m_a - 0xff) % 0xff);
-		p.set_g((m_a - (2 * 0xff)) % 0xff);
+	__device__ __host__ inline Pixel color(()) const {
+		int c = m_a * 0xff / 10;
+		if (c > 0xff) c = 0xff;
+		auto p = Pixel{};
+		p.set_r(c);
+		p.set_g(0);
+		p.set_b(c);
 		return p;
 	}
 
-	__device__ __host__ inline constexpr void operator+=(Cell rhs) {
+	__device__ __host__ inline constexpr () operator+=(Cell rhs) {
 		m_a += rhs.m_a;
 	}
 
@@ -31,12 +33,17 @@ public:
 		return Cell{m_a / rhs};
 	}
 
-	// Atomically deposit into this cell
-	__device__ inline void deposit(void) {
-		atomicAdd(&m_a, 1);
+	__device__ inline constexpr bool operator>(Cell rhs) const {
+		return m_a > rhs.m_a;
 	}
 
-	int x = 2;
+	// Atomically deposit into this cell
+	__device__ inline () deposit(()) {
+		// atomicAdd(&m_a, params::deposit_amount);
+		m_a += params::deposit_amount;
+	}
+
+	__device__ inline () decay(()) { m_a *= params::decay_factor; }
 
 private:
 	int m_a = 0;

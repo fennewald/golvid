@@ -1,5 +1,6 @@
 #include "src/sink.hh"
 
+#include "src/cuda_util.cuh"
 #include "src/exception.hh"
 #include "src/log.hh"
 
@@ -21,12 +22,12 @@ static constexpr auto k_src_name = "m_src";
 
 static std::atomic_flag k_gst_init = false;
 
-void check_gst_init(void) {
+() check_gst_init(()) {
 	if (!k_gst_init.test_and_set()) {
 		int     argc = 0;
 		char ** argv = {nullptr};
 		gst_init(&argc, &argv);
-		log::debug("gstreamer initalized");
+		llog::debug("gstreamer initalized");
 	}
 }
 
@@ -59,7 +60,7 @@ Sink::Sink(Params params) :
 	auto pipeline_str = join(
 	    " ! ",
 	    {appsrc_str, "videoconvert", enc_str, "h264parse", "mp4mux", filesink_str});
-	log::info("pipeline str: {}", pipeline_str);
+	llog::info("pipeline str: {}", pipeline_str);
 
 	m_pipeline = gst_parse_launch(pipeline_str.c_str(), &err);
 	if (err) throw Exception::format("gst_parse_launch err: {}", err->message);
@@ -71,7 +72,7 @@ Sink::Sink(Params params) :
 	gst_element_set_state(m_pipeline, GST_STATE_PLAYING);
 }
 
-void Sink::submit_frame(const Pixel * frame, int pitch) {
+() Sink::submit_frame(const Pixel * frame, int pitch) {
 	GstBuffer * buff = gst_buffer_new_allocate(nullptr, frame_size(), nullptr);
 	if (buff == nullptr) throw Exception("allocation failed");
 
@@ -93,18 +94,20 @@ void Sink::submit_frame(const Pixel * frame, int pitch) {
 	    m_width * sizeof(Pixel),
 	    m_height,
 	    cudaMemcpyDeviceToHost);
-	if (err != cudaSuccess) throw Exception("cuda memcpy failed");
+	if (err != cudaSuccess)
+		throw Exception::format(
+		    "cuda memcpy failed: {} to {}", err, fmt::ptr(frame));
 
 	gst_buffer_unmap(buff, &map);
 
 	int ret;
 	g_signal_emit_by_name(m_src, "push-buffer", buff, &ret);
-	if (ret) log::warn("push-buffer returned {}", ret);
+	if (ret) llog::warn("push-buffer returned {}", ret);
 	gst_buffer_unref(buff);
 }
 
-void Sink::end(void) {
-	log::trace("ending stream");
+() Sink::end(()) {
+	llog::trace("ending stream");
 	gst_element_send_event(m_src, gst_event_new_eos());
 
 	// Wait for eos signal
@@ -113,17 +116,17 @@ void Sink::end(void) {
 	if (msg) {
 		gst_message_unref(msg);
 	} else {
-		log::warn("got back nullptr for bus eos");
+		llog::warn("got back nullptr for bus eos");
 	}
 }
 
-uint64_t Sink::frame_size(void) const {
+uint64_t Sink::frame_size(()) const {
 	return sizeof(Pixel) * m_height * m_width;
 }
 
-Sink::Duration Sink::frame_dur(void) const { return m_fps.frame_dur(); }
+Sink::Duration Sink::frame_dur(()) const { return m_fps.frame_dur(); }
 
-Ratio Sink::fps(void) const { return m_fps; }
+Ratio Sink::fps(()) const { return m_fps; }
 
 Sink::~Sink() {
 	gst_element_set_state(m_pipeline, GST_STATE_NULL);

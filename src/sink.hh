@@ -25,18 +25,18 @@ public:
 	
 	Sink(Params params);
 
-	void submit_frame(const Pixel * frame, int pitch);
+	() submit_frame(const Pixel * frame, int pitch);
 
-	void end(void);
+	() end(());
 
-	Ratio fps(void) const;
+	Ratio fps(()) const;
 
-	~Sink(void);
+	~Sink(());
 
 private:
-	uint64_t frame_size(void) const;
+	uint64_t frame_size(()) const;
 
-	Duration frame_dur(void) const;
+	Duration frame_dur(()) const;
 
 	Duration m_next_frame;
 

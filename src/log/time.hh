@@ -2,7 +2,7 @@
 
 #include <chrono>
 
-namespace captains::log {
+namespace captains::llog {
 
 using Duration = std::chrono::nanoseconds;
 
