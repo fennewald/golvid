@@ -15,14 +15,34 @@ public:
 
 	__device__ __host__ inline constexpr void clear() { m_a = 0; }
 
-	__device__ __host__ inline Pixel color() const {
-		int c = m_a * 0xff / 10;
-		if (c > 0xff) c = 0xff;
-		auto p = Pixel{};
-		p.set_r(c);
-		p.set_g(0);
-		p.set_b(c);
-		return p;
+	__device__ inline Pixel color() const {
+		// Color ramp
+		static constexpr Pixel palette[] = {
+		    Pixel::from_rgb(0x000000),
+		    Pixel::from_rgb(0x471a61),
+		    Pixel::from_rgb(0xbe3e4b),
+		    Pixel::from_rgb(0xf36c15),
+		    Pixel::from_rgb(0xffaa1f),
+		    Pixel::from_rgb(0xffedaf),
+		    Pixel::from_rgb(0xffffff)
+		};
+		static constexpr size_t ramp_len = sizeof(palette) / sizeof(palette[0]);
+
+		float t = (float)m_a / params::max_brightness_cell;
+		if (t >= 1.0) return palette[ramp_len - 1];
+		t *= ramp_len - 1;
+		int l = static_cast<int>(t);
+		int r = l + 1;
+		t -= (float)l;
+		return Pixel::ramp(palette[l], palette[r], t);
+
+		// long c = static_cast<long>(t * 255.0);
+		// if (c > 0xff) c = 0xff;
+		// auto p = Pixel{};
+		// p.set_r(c);
+		// p.set_g(c);
+		// p.set_b(c);
+		// return p;
 	}
 
 	__device__ __host__ inline constexpr void operator+=(Cell rhs) {
@@ -31,6 +51,10 @@ public:
 
 	__device__ __host__ inline constexpr Cell operator/(int rhs) {
 		return Cell{m_a / rhs};
+	}
+
+	__device__ __host__ inline constexpr Cell operator-(int rhs) {
+		return Cell{m_a - rhs};
 	}
 
 	__device__ inline constexpr bool operator>(Cell rhs) const {

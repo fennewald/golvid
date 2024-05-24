@@ -51,10 +51,10 @@ public:
 
 	__device__ inline Cell at(int2 idx) {
 		// Test if this should wrap around
-		return *cu_util::pitch_ptr(cells(), idx, pitch());
+		// return *cu_util::pitch_ptr(cells(), idx, pitch());
 
-		// if (!contains(idx)) return Cell::empty();
-		// return *cu_util::pitch_ptr_raw(cells(), idx, pitch());
+		if (!contains(idx)) return Cell::empty();
+		return *cu_util::pitch_ptr_raw(cells(), idx, pitch());
 	}
 
 	__device__ Cell at_f(float2 idx);

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "src/pixel.cuh"
-#include "src/cell.cuh"
+// #include "src/pixel.cuh"
+// #include "src/cell.cuh"
 
-#include <cuda_runtime.h>
+// #include <cuda_runtime.h>
 
 /*
 namespace details {
@@ -56,20 +56,20 @@ struct Cell {
 };
 */
 
-namespace initialize {
+// namespace initialize {
 
-__host__ void cells(Cell * cells, int pitch);
+// __host__ void cells(Cell * cells, int pitch);
 
-__host__ void agents(float * x, float * y, float * dir);
+// __host__ void agents(float * x, float * y, float * dir);
 
-}  // namespace initialize
+// }  // namespace initialize
 
-__host__ void step(
-    Cell ** prev,
-    Cell ** next,
-    int     cell_pitch,
-    float * x,
-    float * y,
-    float * dir,
-    Pixel * pixels,
-    int     pixel_pitch);
+// __host__ void step(
+//     Cell ** prev,
+//     Cell ** next,
+//     int     cell_pitch,
+//     float * x,
+//     float * y,
+//     float * dir,
+//     Pixel * pixels,
+//     int     pixel_pitch);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "src/util.hh"
+#include "src/pixel.cuh"
 
 #include <cuda_runtime.h>
 
@@ -9,36 +10,41 @@
 namespace params {
 
 // Angle of the sensor relative to the direction the agent is facing
-static constexpr float sensor_angle_deg = 45;
+static constexpr float sensor_angle_deg = 45.0;
 // Angle the agent turns when moving towards food
-static constexpr float agent_turn_deg = 22.4;
+static constexpr float agent_turn_deg = 30.0;
 // Distance of the sensor from the agent's body
-static constexpr float sensor_distance = 2;
+static constexpr float sensor_distance = 10;
 // Distance an agent steps each turn
-static constexpr float agent_step_size = 0.3;
+static constexpr float agent_step_size = 1.0;
 // Decay factory
 static constexpr float decay_factor = 0.9;
 // Amount to deposit each step
-static constexpr int deposit_amount = 100;
+static constexpr int deposit_amount = 2<<20;
 // Grid line step (0 to disable)
-static constexpr size_t hint_grid_dim = 64;
+static constexpr size_t hint_grid_dim = 0;
 // Factor to lengthen diagonal probes by
-static constexpr float angle_correction_factor = 1.41421356237;
+static constexpr float angle_correction_factor = 1; // 1.41421356237;
 // Length of debug agent vectors
-static constexpr float agent_dir_hint_len = 4.0;
+static constexpr float agent_dir_hint_len = 2.0;
+// Hard turn threshold
+static constexpr int hard_turn = 2<<17;
+// Brightness factor
+static constexpr double brightness = 32.0;
 
 
+static constexpr float max_brightness_cell = brightness * deposit_amount;
 static constexpr float sensor_angle_distance = sensor_distance * angle_correction_factor;
 static constexpr float sensor_angle_rad = util::deg_to_rad(sensor_angle_deg);
 static constexpr float agent_turn_rad = util::deg_to_rad(agent_turn_deg);
 
 
 // Number of agents in the simulation
-static constexpr size_t n_agents = 1;
+static constexpr size_t n_agents = 200000;
 // Width of the simulation
-static constexpr int width = 128;
+static constexpr int width = 320;
 // Height of the simulation
-static constexpr int height = 128;
+static constexpr int height = 512;
 
 
 static constexpr size_t sized_agent_block_dim = 512;

@@ -9,26 +9,40 @@ __device__ Cell Medium::at_f(float2 idx) {
 	return at(int2{__float2int_rd(idx.x), __float2int_rd(idx.y)});
 }
 
+// Average using manhattan
 __device__ Cell Medium::avg_at(int2 idx) {
-	auto res = Cell{};
+    auto res = Cell{};
 
-	static constexpr int kernel_dim = 3;
-	static constexpr int n_cells = kernel_dim * kernel_dim;
-	static constexpr int max_val = (kernel_dim - 1) / 2;
-	static constexpr int min_val = max_val * -1;
-	static_assert(kernel_dim % 2 == 1, "kernel dim must be odd");
+    static constexpr int kernel_dim = 3;
+    static constexpr int n_cells = kernel_dim * kernel_dim;
+    static constexpr int max_val = (kernel_dim - 1) / 2;
+    static constexpr int min_val = max_val * -1;
+    static_assert(kernel_dim % 2 == 1, "kernel dim must be odd");
 
 #pragma unroll
-	for (int dy = min_val; dy <= max_val; ++dy) {
-		int y = idx.y + dy;
+    for (int dy = min_val; dy <= max_val; ++dy) {
+        int y = idx.y + dy;
 #pragma unroll
-		for (int dx = min_val; dx <= max_val; ++dx) {
-			int x = idx.x + dx;
-			res += at({x, y});
-		}
-	}
-	return res / n_cells;
+        for (int dx = min_val; dx <= max_val; ++dx) {
+            int x = idx.x + dx;
+            res += at({x, y});
+        }
+    }
+    return res / n_cells;
 }
+// Average using plus
+/*
+__device__ Cell Medium::avg_at(int2 idx) {
+	auto res = at(idx);
+
+	res += at({idx.x - 1, idx.y});
+	res += at({idx.x + 1, idx.y});
+	res += at({idx.x, idx.y - 1});
+	res += at({idx.x, idx.y + 1});
+
+	return res / 5;
+}
+*/
 
 
 __global__ void k_init(Medium m) {
@@ -75,10 +89,10 @@ __global__ void k_render(Medium m, Pixel * pixels, int pitch) {
 	*out = m.get_raw(idx)->color();
 
 	if constexpr (params::hint_grid_dim != 0) {
-		if ((idx.x % params::hint_grid_dim == params::hint_grid_dim - 1) ||
-		    (idx.y % params::hint_grid_dim == params::hint_grid_dim - 1)) {
-			*out = color::white;
-		}
+		// if ((idx.x % params::hint_grid_dim == params::hint_grid_dim - 1) ||
+		//     (idx.y % params::hint_grid_dim == params::hint_grid_dim - 1)) {
+		// 	*out = color::white;
+		// }
 	}
 }
 

@@ -1,6 +1,7 @@
 #include "src/sink.hh"
 
 #include "src/cuda_util.cuh"
+#include "src/pixel.cuh"
 #include "src/exception.hh"
 #include "src/log.hh"
 

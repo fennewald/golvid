@@ -1,7 +1,7 @@
 #pragma once
 
 #include "src/ratio.hh"
-#include "src/sim.cuh"
+#include "src/pixel.cuh"
 
 #include <gst/gst.h>
 #include <gst/gstbus.h>

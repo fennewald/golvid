@@ -28,9 +28,9 @@ int main() {
 	auto sink = Sink(Sink::Params{
 	    .width = params::width,
 	    .height = params::height,
-	    .fps = {30, 1},
+	    .fps = {60, 1},
 	});
-	auto duration = 30s;
+	auto duration = 1200s;
 	auto n_frames = duration / sink.fps().frame_dur();
 
 	// Cuda types
@@ -83,8 +83,10 @@ int main() {
 		agents.deposit(prev_m);
 		prev_m.render(pixels, pix_pitch);
 		prev_m.step(next_m);
+		// agents.render_dirs(pixels, pix_pitch);
 		sink.submit_frame(pixels, pix_pitch);
 		std::swap(prev_m, next_m);
 	}
 	sink.end();
+	llog::info("wrote file");
 }

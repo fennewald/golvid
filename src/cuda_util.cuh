@@ -29,7 +29,16 @@ __device__ inline T * pitch_ptr(T * base, int2 idx, int pitch) {
 	return pitch_ptr_raw(base, idx, pitch);
 }
 
-__device__ int2 round_f2(float2 ns);
+inline __device__ int2 round_f2(float2 ns) {
+	return int2{static_cast<int>(rintf(ns.x)), static_cast<int>(rintf(ns.y))};
+}
+
+// Returns the unit vector in direction
+inline __device__ float2 unit_vec(float rad) {
+	float2 res;
+	sincosf(rad, &res.x, &res.y);
+	return res;
+}
 
 }  // namespace cu_util
 

@@ -10,7 +10,7 @@
 
 class Pixel {
 public:
-	static constexpr Pixel from_hex(std::string_view str) {
+	static constexpr __host__ Pixel from_hex(std::string_view str) {
 		auto it = str.cbegin();
 		auto end = str.cend();
 		if (*it == '#') it++;
@@ -27,6 +27,22 @@ public:
 		if (it != end) throw Exception::format("Invalid hex string '{}'", str);
 
 		return Pixel{channels[0], channels[1], channels[2]};
+	}
+
+	static __device__ constexpr Pixel from_rgb(unsigned int raw) {
+		return Pixel{
+		    static_cast<uint8_t>((raw >> 16) & 0xff),
+		    static_cast<uint8_t>((raw >> 8) & 0xff),
+		    static_cast<uint8_t>(raw & 0xff)};
+	}
+
+	static __device__ Pixel ramp(Pixel l, Pixel r, float t) {
+		return Pixel{
+		    static_cast<uint8_t>(((r.r() - l.r()) * t) + l.r()),
+		    static_cast<uint8_t>(((r.g() - l.g()) * t) + l.g()),
+		    static_cast<uint8_t>(((r.b() - l.b()) * t) + l.b()),
+		    static_cast<uint8_t>(((r.a() - l.a()) * t) + l.a()),
+		};
 	}
 
 	__device__ __host__ constexpr Pixel(void) {}
